@@ -2,7 +2,7 @@
 
 一個[Escape from Tarkov][escape-from-tarkov]工具庫
 
-
+Language: [繁體中文](README.md)/[Eng(ai translate)](README_en.md)/...
 
 # 引用
 [Escape from Tarkov [Sound Effects]](https://www.youtube.com/playlist?list=PLq44zq7R2Kq7mUiGSXXjkcjHR7EDzHo6L)
