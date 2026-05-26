@@ -1,0 +1,4 @@
+opencode -s ses_19e7c547cffeV8R7GziUFuZ7Tg
+
+this code only work on the developer device.
+so skip this file
