@@ -1,4 +1,1 @@
-Translate the following Markdown content into English. Keep the original Markdown formatting (headings, lists, tables, bold, italics, etc.) unchanged. Only translate the text.
-
-Markdown input:
-[Paste your Markdown here]
+Translate the content of the file ./README.md (located in the project root directory) into English. Keep the original Markdown formatting (headings, lists, tables, bold, italics, etc.) unchanged. Only translate the text. Save the translated result into a new file named ./README_en.md in the project root directory.
