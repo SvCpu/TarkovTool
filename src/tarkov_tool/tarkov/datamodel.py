@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 import hashlib
 from typing import Callable, Optional, Final
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 datetimeformatstr:Final[str] = r'%Y-%m-%d %H:%M:%S.%f %z'
 datetimetostr:Callable[[datetime],str] = lambda x: x.strftime(datetimeformatstr)
@@ -107,6 +107,7 @@ class ProfileType(Enum):
 class ProfileSide(Enum):
     USEC = 'Usec'
     BEAR = 'Bear'
+    Unknown = "Unknown"
 
 class RaidType(Enum):
     PVE = "PVE"
@@ -132,6 +133,25 @@ class LogFolderInfo:
     @property
     def info_hash(self)->str:
         return hashlib.blake2s(f'{self.timestamp} From {self.version}'.encode("utf-8"), digest_size=4).hexdigest()
+
+class LogVersion(Enum):
+    'game version > 1.0 = release'
+    Beta = 'beta'
+    Release = 'release'
+
+class Profile(BaseModel):
+    type: ProfileType = Field(default=ProfileType.Regular)
+    id: str
+    
+
+class Player(BaseModel):
+    ac_id: str = Field(default=None)
+    pve_profile_id: str = Field(default=None)
+    regular_profile_id: str = Field(default=None)
+    nickname: str = Field(default=None)
+    side:ProfileSide = Field(default=ProfileSide.Unknown)
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls,)
 
 class Position(BaseModel):
     x: float
