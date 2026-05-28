@@ -1,3 +1,4 @@
+from typing import Type
 from pydantic import BaseModel, ConfigDict, computed_field, Field
 from datetime import datetime
 from pathlib import Path
@@ -40,4 +41,4 @@ class TARKOV_MAP_SWITCH(Event):
     注意: 只有在地圖與上一次觸發的地圖不一樣時才會觸發
     '''
 
-ALL_EVENTS:set[Event] = set(Event.__subclasses__())
+ALL_EVENTS:set[Type[Event]] = set(Event.__subclasses__())

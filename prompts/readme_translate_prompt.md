@@ -1,1 +1,3 @@
-Translate the content of the file ./README.md (located in the project root directory) into English. Keep the original Markdown formatting (headings, lists, tables, bold, italics, etc.) unchanged. Only translate the text. Save the translated result into a new file named ./README_en.md in the project root directory.
+Translate the content of the file ./README.md (located in the project root directory) into English. Keep the original Markdown formatting (headings, lists, tables, bold, italics, etc.) unchanged. Only translate the text. At the very beginning of the translated document, insert a note stating: 
+"This document was translated into English using AI. Please refer to the original README.md (Chinese version) as the authoritative source." 
+Save the translated result into a new file named ./README_en.md in the project root directory.

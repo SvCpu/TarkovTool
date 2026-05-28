@@ -4,6 +4,18 @@
 
 Language: [繁體中文](README.md)/[Eng(ai translate)](README_en.md)/...
 
+# 數據
+## Tarkov 敏感數據
+本項目默認會對讀取到的 Tarkov 敏感數據 進行哈希處理, 以保障隱私
+這一行為由類屬性 `tarkov_tool.config.Config.enable_sensitive_data_hashing_for_tarkov` 控制
+
+Tarkov 敏感數據包括但不限於:
+ - AccountID
+ - ProFileID
+
+>[!NOTE]
+>這一行為被設計成讀取到數據並解析時就會進行哈希處理再輸出
+
 # 引用
 [Escape from Tarkov [Sound Effects]](https://www.youtube.com/playlist?list=PLq44zq7R2Kq7mUiGSXXjkcjHR7EDzHo6L)
 [Escape from Tarkov Wiki](https://escapefromtarkov.fandom.com/wiki/Escape_from_Tarkov_Wiki)

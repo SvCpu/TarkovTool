@@ -1,5 +1,6 @@
 import threading
 from typing import Callable, Type
+
 from .events import *
 import logging
 
@@ -7,6 +8,7 @@ class EventManger:
     _instance = None
     _events:dict[str, list] = {}
     _enable = False
+    _logparser = None
     @classmethod
     def register(cls, event: Type[Event], handler: Callable) -> None:
         if event in ALL_EVENTS:
@@ -15,7 +17,7 @@ class EventManger:
     @classmethod
     def _trigger(cls, event: Event):
         if cls._enable:
-            for handler in cls._events.get(event.event_name, []):
+            for handler in cls._events.get(event.event_name(), []):
                 def safe_call():
                     try:
                         handler(event=event)
