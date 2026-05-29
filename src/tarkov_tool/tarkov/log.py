@@ -4,8 +4,10 @@ import hashlib
 import json
 from pathlib import Path
 import re
-from typing import Final, overload
-from .datamodel import Location, LogVersion, Raid
+from typing import Dict, Final, overload
+from contextlib import suppress
+from pydantic import BaseModel
+from .datamodel import GamePurchaseVersion, Location, LogVersion, Raid
 from .datamodel import RaidSession, RaidGroup, RaidStatus, RaidType
 from .datamodel import Player, Profile, ProfileSide, ProfileType
 from ..config import Config
@@ -13,11 +15,48 @@ from tarkov_tool.event_manger import EventManger
 from ..events import *
 
 @dataclass
-class RaidMark:
+class StatusMark:
     is_local:bool = field(default=False)
+    is_online:bool = field(default=False)
     is_pmc:bool = field(default=False)
+    is_pve:bool = field(default=False)
+    now_profile_id: str = field(default='')
     raid_short_id:str = field(default=None)
+    raid_started: bool = field(default=False)
     location: Location = field(default=None)
+    map_load_time:float = field(default=None)
+
+
+class _health_data(BaseModel):
+    Current: float
+    Maximum: int
+
+class _bodyparts(BaseModel):
+    Head: Dict[str, _health_data]
+    Chest: Dict[str, _health_data]
+    Stomach: Dict[str, _health_data]
+    LeftArm: Dict[str, _health_data]
+    RightArm: Dict[str, _health_data]
+    LeftLeg: Dict[str, _health_data]
+    RightLeg: Dict[str, _health_data]
+
+class _player_health(BaseModel):
+    Hydration: _health_data
+    Energy: _health_data
+    Temperature: _health_data
+    BodyParts: _bodyparts
+
+class _player_info(BaseModel):
+    Nickname: str
+    Side: str
+    Level: int
+    GameVersion: str
+    Health: _player_health
+
+class _player(BaseModel):
+    aid:int
+    Info: _player_info
+    isLeader:bool = Field(default=None)
 
 @dataclass
 class Log_line:
@@ -50,14 +89,17 @@ class LogParser:
         self.other_player:list[Player] = []
         self._log_lines:list[Log_line] = []
         self._parsed = False
-        self._raid_mark = RaidMark()
+        self._raid_mark = StatusMark()
         self.new_group()
     @staticmethod
     def sensitive_data_hash(data:str)->str:
         if Config.enable_sensitive_data_hashing_for_tarkov:
-            h = hashlib.blake2b(digest_size=6)
-            h.update(data.encode('utf-8'))
-            return h.hexdigest()
+            if data:
+                if not isinstance(data, str):
+                    data = str(data)
+                h = hashlib.blake2b(digest_size=6)
+                h.update(data.encode('utf-8'))
+                return h.hexdigest()
         return data
     @property
     def now_raid(self)->Raid|None:
@@ -65,11 +107,15 @@ class LogParser:
             return None
         else:
             return self.raids[self.recordingraidindex]
+    def raid_done(self):
+        self._raid_mark = StatusMark()
+        if self.now_raid is not None:
+            self.recordingraidindex = None
     def new_raid(self):
-        self._raid_mark = RaidMark()
+        self._raid_mark = StatusMark()
         self.raids.append(Raid())
         if self.now_raid is None:
-            self.recordingraidindex = 0
+            self.recordingraidindex = len(self.raids) - 1
         else:
             self.recordingraidindex += 1
     def new_group(self):
@@ -159,6 +205,15 @@ class LogParser:
                 out.append(line)
         out.sort(key=lambda x: x.time)
         return tuple(out)
+    def add_player(self, player:Player):
+        if not player.is_player_in(self.other_player):
+            self.other_player.append(player)
+    def _parse_player_data(self, data:dict)->_player|None:
+        with suppress():
+            player_data = _player(**data)
+            player_data.aid = self.sensitive_data_hash(player_data.aid)
+            return player_data
+        return None
     def parse_line(self, line:Log_line):
         match line.parse_message:
             case 'Session mode: ':
@@ -166,83 +221,87 @@ class LogParser:
                     mode = match.group("mode")
                     self.profiletype = ProfileType(mode)
             case 'SelectProfile ProfileId:':
-                if self.raidrecording:
+                if self.now_raid:
                     self.recordingraid.end(line.time)
                 if match := re.search(r"SelectProfile ProfileId:(?P<pid>\w+)\s+AccountId:(?P<aid>\d+)",line.message):
-                    profile_id = match.group("pid")
-                    account_id = match.group("aid")
-                    if not self.player_pid:
-                        self.player_pid = str_hash(profile_id)
-                    if not self.player_aid:
-                        self.player_aid = str_hash(account_id)
+                    profile_id = self.sensitive_data_hash(match.group("pid"))
+                    account_id = self.sensitive_data_hash(match.group("aid"))
+                    if not self.ac_player.ac_id:
+                        self.ac_player.ac_id = account_id
+                    if profile_id:
+                        self._raid_mark.now_profile_id = profile_id
+                        match profile_id:
+                            case self.ac_player.pve_profile_id:
+                                self._raid_mark.is_pve = True
+                            case self.ac_player.regular_profile_id:
+                                self._raid_mark.is_pve = False
             case 'Got notification | GroupMatchInviteAccept':
                 '發生在發送邀請的人接受邀請時'
-                if line.json_data:
-                    json_data:dict = json.loads(line.json_data)
-                    info:dict = json_data.get('Info',{})
-                    GameVersion = GamePurchaseVersion(info.get('GameVersion'))
-                    Player = player(
-                        Nickname=info['Nickname'],
-                        aId=str_hash(str(json_data.get('aid'))),
-                        )
-                    Player.gameversion = GameVersion
-                    # self.group.join(Player)
+                if line.data:
+                    json_data:dict = line.data
+                    player_data = self._parse_player_data(line.data)
+                    player = Player(
+                        ac_id=player_data.aid,
+                        nickname=player_data.Info.Nickname,
+                    )
+                    player.level=player_data.Info.Level
+                    with suppress(ValueError):
+                        player.side=ProfileSide(player_data.Info.Side)
+                    with suppress(ValueError):
+                        player.game_purchase_version = GamePurchaseVersion(player_data.Info.GameVersion)
+                    self.raid_group.join(player)
+                    self.add_player(player)
             case 'Got notification | GroupMatchInviteSend':
                 '發生在收到邀請並接受或拒絕邀請時'
+                # has Group info
             case 'Got notification | GroupMatchUserLeave':
                 '用戶離開小組'
-                if line.json_data:
-                    jsdata:dict = json.loads(line.json_data)
-                    self.group.leave(player(Nickname=jsdata['Nickname'],aId=str_hash(str(jsdata['aid']))))
+                if line.data:
+                    player = Player(
+                        ac_id=self.sensitive_data_hash(line.data['aid']),
+                        nickname=str(line.data['Nickname'])
+                    )
+                    self.raid_group.leave(player)
+                    self.add_player(player)
             case 'Got notification | GroupMatchWasRemoved':
                 '當小組解散時'
                 self.new_group()
             case 'Got notification | GroupMatchRaidSettings':
                 '當小組負責人邀請成員準備就緒時發生'
-                if line.json_data:
-                    jsdata:dict = json.loads(line.json_data)
-                    if raidSettings:=jsdata.get('raidSettings'):
-                        raidSettings:dict | None
-                        location = raidSettings['location']
-                        self.RaidSettings['location'] = Location(location)
+                if line.data:
+                    if raidSettings:=line.data.get('raidSettings'):
+                        self._raid_mark.location = Location(raidSettings['location'])
                         if raidSettings.get('side') == 'Pmc':
-                            self.RaidSettings['pmc'] = True
+                            self._raid_mark.is_pmc = True
             case 'Got notification | GroupMatchRaidReady':
-                'Occurs for each other member of the group when ready'
+                '當`準備就緒`時, 該事件將發生在群組內其他每個成員身上'
                 # can get meber iteminfo
-                if line.json_data:
-                    jsdata:dict = json.loads(line.json_data)
-                    if extendedProfile := jsdata.get('extendedProfile',{}):
-                        aid = str(extendedProfile.get('aid'))
-                        profile_info:dict = extendedProfile.get('Info',{})
-                        nickname = profile_info.get('Nickname')
-                        side = profile_info.get('Side')
-                        level = profile_info.get('Level')
-                        gameversion = profile_info.get('GameVersion')
-                        Player = player(nickname)
-                        Player.aid = str_hash(aid)                        # print(f'{aid}: {nickname} Level:{level}')
-                        self.group.join(Player)
+                if line.data:
+                    if extendedProfile := line.data('extendedProfile',{}):
+                        player_data = self._parse_player_data(extendedProfile)
+                        player = Player(
+                            ac_id=player_data.aid,
+                            nickname=player_data.Info.Nickname,
+                        )
+                        self.add_player(player)
             case 'application|Matching with group id':
                 ''
                 if group_id := line.message[line.message.index('Matching with group id: ')+24:]:
-                    if len(group_id) > 1:
-                        self.group.id = group_id
+                    if group_id:
+                        self.raid_group.id = group_id
             case 'Error|Default|[Transit] Flag:Common':
                 if match := re.search(r'RaidId:(\w+),.*?Locations:(\w+)', line.message):
                     raid_id = match.group(1)
                     location = match.group(2)
                     if raid_id:
-                        self.RaidSettings['rid'] = raid_id
+                        self.now_raid.id = raid_id
                     if location:
-                        self.RaidSettings['location'] = Location(location)
+                        self._raid_mark.location = Location(location)
             case 'application|LocationLoaded':
                 '地圖已加載，遊戲正在尋找比賽'
-                # if self.TransitLocation:
-                #     self.raids[self._recordingraindex].location = self.TransitLocation
                 if match := re.search(r"LocationLoaded:[0-9.,]+ real:(?P<loadTime>[0-9.,]+)", line.message):
                     load_time_str = match.group("loadTime").replace(",", ".")
-                    if self.raidrecording:
-                        self.recordingraid.map_load_time = float(load_time_str)
+                    self._raid_mark.map_load_time = float(load_time_str)
             case 'application|MatchingCompleted':
                 '''
                 已完成配對，並與其他玩家鎖定至同一伺服器
@@ -254,20 +313,22 @@ class LogParser:
                     queue_time_str = match.group("queueTime").replace(",", ".")
                     queue_time = float(queue_time_str)
                 else:
-                    queue_time = None  # 未能解析 queueTime
+                    queue_time = None
+                # queue_time can't find in 
             case 'application|TRACE-NetworkGameCreate profileStatus':
                 '''
                 配對完成後立即觸發
                 可用資訊已足夠，可引發 MatchFound 事件
                 only online
                 '''
-                self.RaidSettings['online'] = "RaidMode: Online" in line.message
+                if "RaidMode: Online" in line.message:
+                    self._raid_mark.is_online = True
                 if map_match := re.search(r"Location: (?P<map>[^,]+)", line.message):
                     map = map_match.group("map")
-                    self.RaidSettings['location'] = Location(map)
+                    self._raid_mark.location = Location(map)
                 if raid_id_match := re.search(r"shortId: (?P<shortId>[A-Z0-9]{6})", line.message):
                     raid_id = raid_id_match.group("shortId")
-                    self.RaidSettings['sid'] = raid_id
+                    self._raid_mark.raid_short_id = raid_id
                 # # 判斷是否為 Reconnect 狀態
                 # if raid_id in raids:
                 #     raid_info = raids[raid_id]
@@ -311,11 +372,12 @@ class LogParser:
                     if sid := json_data.get('shortId'):
                         self.RaidSettings['sid'] = sid
             case 'application|Init: pstrGameVersion: ':
-                'Escape from Tarkov 0.16.8.0.37972, uiAddress: 0, usPort: 0'
+                '遊戲進程啟動時發出一條'
+                #'Escape from Tarkov 0.16.8.0.37972, uiAddress: 0, usPort: 0'
                 game_version = line.message[line.message.rindex('pstrGameVersion: ')+17:line.message.index(',')]
                 # print(game_version)
-                if self.raidrecording:
-                    self.recordingraid.end(line.time)
+                # if self.raidrecording:
+                #     self.recordingraid.end(line.time)
             case 'Got notification | ChatMessageReceived':
                 if line.json_data:
                     jsdata:dict = json.loads(line.json_data)

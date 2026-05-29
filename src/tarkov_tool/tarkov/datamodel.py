@@ -2,7 +2,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Final
+from typing import Optional, Final, Iterable
 from pydantic import BaseModel, Field
 
 map_bundles:Final[dict[str,str]] = {
@@ -79,13 +79,13 @@ class LogVersion(Enum):
     Release = 'release'
 
 class ProfileType(Enum):
-    PVE = "pve"
-    Regular = "regular"
+    PVE = "Pve "
+    Regular = "Regular"
 
 class ProfileSide(Enum):
-    USEC = 'usec'
-    BEAR = 'bear'
-    Unknown = "unknown"
+    USEC = 'Usec'
+    BEAR = 'Bear'
+    Unknown = "Unknown"
 
 class RaidType(Enum):
     PMC = 'pmc'
@@ -111,13 +111,17 @@ class Profile(BaseModel):
     type: ProfileType = Field(default=ProfileType.Regular)
     level: int = Field(default=0)
 
+class PlayerHealth(BaseModel):
+    pass
+
 class Player(BaseModel):
-    ac_id: str = Field(default=None)
+    ac_id: int = Field(default=None)
     pve_profile_id: str = Field(default=None)
     regular_profile_id: str = Field(default=None)
     game_purchase_version: Optional[GamePurchaseVersion] = Field(default=GamePurchaseVersion.Standard)
     nickname: str = Field(default=None)
     side:ProfileSide = Field(default=None)
+    level: int = Field(default=None)
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls,)
     def is_same_player(self, other)->bool:
@@ -127,6 +131,11 @@ class Player(BaseModel):
             return True
         if self.nickname == other.nickname and (self.ac_id is None or other.ac_id is None):
             return True
+        return False
+    def is_player_in(self, others:Iterable['Player'])->bool:
+        for m in others:
+            if m.is_same_player(self):
+                return True
         return False
 
 class RaidGroup(BaseModel):
@@ -138,10 +147,11 @@ class RaidGroup(BaseModel):
         if len(self.members) < self.max_member and all(not m.is_same_player(member) for m in self.members):
             self.members.append(member)
     def leave(self, member:Player):
-        for m in self.members:
-            if m.is_same_player(member):
-                self.members.remove(m)
-                break
+        if member.is_player_in(self.members):
+            for m in self.members:
+                if m.is_same_player(member):
+                    self.members.remove(m)
+                    break
 
 class RaidSession(BaseModel):
     start_time: datetime
