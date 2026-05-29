@@ -19,6 +19,7 @@ map_bundles:Final[dict[str,str]] = {
     "shopping_mall": "Interchange",
     "shoreline_preset": "Shoreline",
     "woods_preset": "Woods",
+    "icebreaker":"Icebreaker",
 }
 
 class Location(Enum):
@@ -33,6 +34,7 @@ class Location(Enum):
     Interchange = 'Interchange'
     Labs = 'laboratory'
     Customs = 'bigmap'
+    Icebreaker = 'Icebreaker'
 
 class MessageType(Enum):
     PlayerMessage = 1

@@ -90,15 +90,21 @@ def is_tarkov_window_active() -> bool:
     return bool(result)
 
 def is_tarkov_running() -> bool:
-    '''根據進程名稱判斷塔科夫是否運行
+    return any(
+        p.info["name"] == "EscapeFromTarkov.exe"
+        for p in psutil.process_iter(["name"])
+    )
 
-    Returns:
-        bool: is not running
-    '''
-    for proc in psutil.process_iter():
-        try:
-            if proc.name() == "EscapeFromTarkov.exe":
-                return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            continue
-    return False
+# def is_tarkov_running() -> bool:
+#     '''根據進程名稱判斷塔科夫是否運行
+
+#     Returns:
+#         bool: is not running
+#     '''
+#     for proc in psutil.process_iter():
+#         try:
+#             if proc.name() == "EscapeFromTarkov.exe":
+#                 return True
+#         except (psutil.NoSuchProcess, psutil.AccessDenied):
+#             continue
+#     return False

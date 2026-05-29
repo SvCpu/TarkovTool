@@ -26,7 +26,6 @@ class StatusMark:
     location: Location = field(default=None)
     map_load_time:float = field(default=None)
 
-
 class _health_data(BaseModel):
     Current: float
     Maximum: int
@@ -66,6 +65,10 @@ class Log_line:
     log_path:Path|None = field(default=None)
     line_range:tuple[int,int]|None = field(default=None, repr=False)
     parse_message:str = field(default=None)
+    def __hash__(self):
+        return hash((self.time, self.message, self.parse_message))
+    def __eq__(self, other:'Log_line'):
+        return (self.time, self.message, self.parse_message) == (other.time, other.message, other.parse_message)
 
 class LogParser:
     _log_pattern:str
@@ -217,6 +220,7 @@ class LogParser:
     def parse_line(self, line:Log_line):
         match line.parse_message:
             case 'Session mode: ':
+                '發生在第一次載入Profile和切換模式時'
                 if match:= re.search(r"Session mode: (?P<mode>\w+)", line.message):
                     mode = match.group("mode")
                     self.profiletype = ProfileType(mode)
@@ -372,7 +376,8 @@ class LogParser:
                     if sid := json_data.get('shortId'):
                         self.RaidSettings['sid'] = sid
             case 'application|Init: pstrGameVersion: ':
-                '遊戲進程啟動時發出一條'
+                '遊戲初始化時發出一條'
+                # application.log | traces.log
                 #'Escape from Tarkov 0.16.8.0.37972, uiAddress: 0, usPort: 0'
                 game_version = line.message[line.message.rindex('pstrGameVersion: ')+17:line.message.index(',')]
                 # print(game_version)
