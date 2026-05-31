@@ -1,3 +1,11 @@
+from .datamodel import GamePurchaseVersion, Location, LogVersion, Raid, Version
+from .datamodel import RaidSession, RaidGroup, RaidStatus, RaidType
+from .datamodel import Player, Profile, ProfileSide, ProfileType
+from ..config import Config
+from tarkov_tool.event_manger import EventManger
+from ..events import *
+from .locations.map import get as get_location
+
 from dataclasses import dataclass, field
 from datetime import datetime
 import hashlib
@@ -6,13 +14,8 @@ from pathlib import Path
 import re
 from typing import Dict, Final, overload
 from contextlib import suppress
+
 from pydantic import BaseModel
-from .datamodel import GamePurchaseVersion, Location, LogVersion, Raid
-from .datamodel import RaidSession, RaidGroup, RaidStatus, RaidType
-from .datamodel import Player, Profile, ProfileSide, ProfileType
-from ..config import Config
-from tarkov_tool.event_manger import EventManger
-from ..events import *
 
 @dataclass
 class StatusMark:
@@ -77,9 +80,15 @@ class LogParser:
     _global_event_mark = False
     _parse_strings:tuple[str]
     @overload
-    def __new__(self,log_version:LogVersion=LogVersion.Release, live_mode=False):...
+    def __new__(self,version:Version|str, live_mode=False):...
     def __new__(cls, *args, **kwargs):
-        cls = BetaLogParser if kwargs.get('LogVersion', None) is LogVersion.Beta else ReleaseLogParser
+        cls = ReleaseLogParser
+        if version:=kwargs.get('version'):
+            if isinstance(version, str):
+                version = Version(version)
+            if not isinstance(version, Version):
+                raise TypeError
+            cls = ReleaseLogParser if version >= Version('1.0.0.0.41787') else BetaLogParser
         return object.__new__(cls)
     def __init__(self, *args, **kwargs):
         self._enable_event_trigger:False
@@ -110,6 +119,8 @@ class LogParser:
             return None
         else:
             return self.raids[self.recordingraidindex]
+    def new_log_folder(self):
+        '表示之後傳入的日誌都是新的日誌資料夾產生的'
     def raid_done(self):
         self._raid_mark = StatusMark()
         if self.now_raid is not None:
@@ -411,7 +422,7 @@ class LogParser:
             case 'application|scene preset path:maps':
                 if bundleMatch := re.search(r"scene preset path:maps/(?P<mapBundleName>[a-zA-Z0-9_]+)\.bundle", line.message):
                     mapBundle = bundleMatch.group("mapBundleName")
-                    location:Location = Location(map_bundles[mapBundle])
+                    location:Location = Location(get_location(mapBundle))
         # if line.parse_message == 'Got notification | ChatMessageReceived':
         #     return
         # self.t.append((line.time,line.message))

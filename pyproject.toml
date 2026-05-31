@@ -26,6 +26,9 @@ dependencies = [
     "requests>=2.34.2",
 ]
 
+[tool.setuptools.package-data]
+"tarkov_tool" = ["tarkov/localization/*.json"]
+
 [project.urls]
 Repository = ""
 
@@ -54,7 +57,7 @@ build-backend = "hatchling.build"
 packages = ["src/tarkov_tool", "src/tarkov_tool_util"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["reference", "note"]
+exclude = ["reference", "notes", "assets", "prompts"]
 
 [tool.ruff.lint]
 extend-ignore = ["F405", "F403", "E731"]

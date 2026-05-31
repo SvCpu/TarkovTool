@@ -3,38 +3,23 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Final, Iterable
-from pydantic import BaseModel, Field
-
-map_bundles:Final[dict[str,str]] = {
-    "city_preset": "TarkovStreets",
-    "customs_preset": "bigmap",
-    "factory_day_preset": "factory4_day",
-    "factory_night_preset": "factory4_night",
-    "laboratory_preset": "laboratory",
-    "labyrinth_preset": "Labyrinth",
-    "lighthouse_preset": "Lighthouse",
-    "rezerv_base_preset": "RezervBase",
-    "sandbox_preset": "Sandbox",
-    "sandbox_high_preset": "Sandbox_high",
-    "shopping_mall": "Interchange",
-    "shoreline_preset": "Shoreline",
-    "woods_preset": "Woods",
-    "icebreaker":"Icebreaker",
-}
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic_core import core_schema
 
 class Location(Enum):
     Lighthouse = 'Lighthouse'
     TarkovStreets = 'TarkovStreets'
     Shoreline = 'Shoreline'
-    Reserve = 'RezervBase'
-    GroundZero_High = 'Sandbox_high'
-    GroundZero = 'Sandbox'
-    FactoryDay = 'factory4_day'
+    Reserve = 'Reserve'
+    GroundZero_High = 'GroundZero_High'
+    GroundZero = 'GroundZero'
+    FactoryDay = 'FactoryDay'
     Woods = 'Woods'
     Interchange = 'Interchange'
-    Labs = 'laboratory'
-    Customs = 'bigmap'
+    Labs = 'Labs'
+    Customs = 'Customs'
     Icebreaker = 'Icebreaker'
+    Terminal = 'Terminal'
 
 class MessageType(Enum):
     PlayerMessage = 1
@@ -66,10 +51,69 @@ class KillList:
     Killer: str
     EliminatedTagets: list[Kill]
 
+class Version:
+    __slots__ = ('_raw_version', '_major', '_minor', '_patch', '_subpatch', '_build')
+
+    def __init__(self, version: str):
+        self._raw_version = version
+        parts = version.split(".")
+        if len(parts) != 5:
+            raise ValueError
+        self._major = int(parts[0])
+        self._minor = int(parts[1])
+        self._patch = int(parts[2])
+        self._subpatch = int(parts[3])
+        self._build = int(parts[4])
+
+    @property
+    def major(self): return self._major
+    @property
+    def minor(self): return self._minor
+    @property
+    def patch(self): return self._patch
+    @property
+    def subpatch(self): return self._subpatch
+    @property
+    def build(self): return self._build
+    def __repr__(self):
+        return (f"<GameVersion {self.major}.{self.minor}.{self.patch}."
+                f"{self.subpatch}.{self.build}>")
+    def __str__(self):
+        return f"{self.major}.{self.minor}.{self.patch}.{self.subpatch}.{self.build}"
+    def __lt__(self, other:'Version'):
+        return (self.major, self.minor, self.patch, self.subpatch, self.build) < \
+               (other.major, other.minor, other.patch, other.subpatch, other.build)
+    def __eq__(self, other:'Version'):
+        return (self.major, self.minor, self.patch, self.subpatch, self.build) == \
+               (other.major, other.minor, other.patch, other.subpatch, other.build)
+    def __gt__(self, other:'Version'):
+        return (self.major, self.minor, self.patch, self.subpatch, self.build) > \
+               (other.major, other.minor, other.patch, other.subpatch, other.build)
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type, handler):
+        return core_schema.no_info_plain_validator_function(
+            cls._validate,
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda v: str(v),
+                return_schema=core_schema.str_schema()
+            )
+        )
+    @classmethod
+    def _validate(cls, value):
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            return cls(value)
+        raise TypeError("必须是 Version 或字符串")
+
 class LogFolder(BaseModel):
     path: Path
     timestamp: datetime
-    version: str
+    version: Version
+    model_config = ConfigDict(
+        validate_assignment=True,
+        json_encoders={Path: str, Version: str}
+    )
 
 class LogParserDataSource(BaseModel):
     logfolders:list[LogFolder] = Field(default=None)

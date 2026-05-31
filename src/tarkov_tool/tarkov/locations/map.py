@@ -1,0 +1,38 @@
+from typing import Final
+
+map_bundles:Final[dict[str,str]] = {
+    "city_preset": "TarkovStreets",
+    "customs_preset": "bigmap",
+    "factory_day_preset": "factory4_day",
+    "factory_night_preset": "factory4_night",
+    "laboratory_preset": "laboratory",
+    "labyrinth_preset": "Labyrinth",
+    "lighthouse_preset": "Lighthouse",
+    "rezerv_base_preset": "RezervBase",
+    "sandbox_preset": "Sandbox",
+    "sandbox_high_preset": "Sandbox_high",
+    "shopping_mall": "Interchange",
+    "shoreline_preset": "Shoreline",
+    "woods_preset": "Woods",
+    "icebreaker":"Icebreaker",
+}
+
+location_map:Final[dict[str,str]] = {
+    'Lighthouse': 'Lighthouse',
+    'TarkovStreets': 'TarkovStreets',
+    'Shoreline': 'Shoreline',
+    'RezervBase': 'Reserve',
+    'Sandbox_high': 'GroundZero_High',
+    'Sandbox': 'GroundZero',
+    'factory4_day': 'FactoryDay',
+    'Woods': 'Woods',
+    'Interchange': 'Interchange',
+    'laboratory': 'Labs',
+    'bigmap': 'Customs',
+    'Icebreaker': 'Icebreaker'
+}
+
+def get(location_str:str) -> str|None:
+    if bundles:=map_bundles.get(location_str):
+        return location_map[bundles]
+    return location_map.get(location_str, None)
