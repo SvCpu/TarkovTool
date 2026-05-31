@@ -8,14 +8,17 @@ from .locations.map import get as get_location
 
 from dataclasses import dataclass, field
 from datetime import datetime
-import hashlib
-import json
-from pathlib import Path
-import re
 from typing import Dict, Final, overload
 from contextlib import suppress
+from pathlib import Path
+import hashlib
+import json
+import re
+import logging
 
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class StatusMark:
@@ -191,9 +194,7 @@ class LogParser:
         if line_index:
             line_indexs = self.build_line_index(data)
         out:list[Log_line] = []
-        log_pattern = self._log_pattern
-        # log_pattern = r"(?P<date>^\d{4}-\d{2}-\d{2}) (?P<time>\d{2}:\d{2}:\d{2}\.\d{3})\|(?P<message>.+$)\s*(?P<json>^{[\s\S]+?^})?"
-        log_messages = re.finditer(log_pattern, data, re.MULTILINE)
+        log_messages = re.finditer(self._log_pattern, data, re.MULTILINE)
 
         for match in log_messages:
             match_start = match.start()
@@ -426,6 +427,8 @@ class LogParser:
         # if line.parse_message == 'Got notification | ChatMessageReceived':
         #     return
         # self.t.append((line.time,line.message))
+
+
 class BetaLogParser(LogParser):
     _log_pattern = r"(?P<date>^\d{4}-\d{2}-\d{2}) (?P<time>\d{2}:\d{2}:\d{2}\.\d{3} [+-]\d{2}:\d{2})\|(?P<message>.+$)\s*(?P<json>^{[\s\S]+?^})?"
     _timestamp_format = "%Y-%m-%d %H:%M:%S.%f %z"
@@ -453,6 +456,7 @@ class BetaLogParser(LogParser):
     'Error|Default|[Transit] Flag:Common',
     'application|scene preset path:maps',
     )
+
 class ReleaseLogParser(LogParser):
     _log_pattern = r"(?P<date>^\d{4}-\d{2}-\d{2}) (?P<time>\d{2}:\d{2}:\d{2}\.\d{3})\|(?P<message>.+$)\s*(?P<json>^{[\s\S]+?^})?"
     _timestamp_format = "%Y-%m-%d %H:%M:%S.%f"
