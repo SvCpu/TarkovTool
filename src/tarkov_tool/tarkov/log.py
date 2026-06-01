@@ -5,9 +5,10 @@ from ..config import Config
 from tarkov_tool.event_manger import EventManger
 from ..events import *
 from .locations.map import get as get_location
+from ..constants import SYSTEM_TIME_ZONE_INFO
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Dict, Final, overload
 from contextlib import suppress
 from pathlib import Path
@@ -83,7 +84,11 @@ class LogParser:
     _global_event_mark = False
     _parse_strings:tuple[str]
     @overload
-    def __new__(self,version:Version|str, live_mode=False):...
+    def __new__(self,
+                version:Version|str,
+                live_mode=False,
+                tzinfo:tzinfo=None,
+                ):...
     def __new__(cls, *args, **kwargs):
         cls = ReleaseLogParser
         if version:=kwargs.get('version'):
@@ -92,12 +97,16 @@ class LogParser:
             if not isinstance(version, Version):
                 raise TypeError
             cls = ReleaseLogParser if version >= Version('1.0.0.0.41787') else BetaLogParser
+            cls.log_version = version
         return object.__new__(cls)
     def __init__(self, *args, **kwargs):
         self._enable_event_trigger:False
         self._player_name_index:dict[str,Player] = {}
         self._player_aid_index:dict[str,Player] = {}
         self.live_mode:bool = kwargs.get("live_mode", False)
+        self.tzinfo = kwargs.get("tzinfo", None)
+        if self.tzinfo and not isinstance(self.tzinfo, (tzinfo, None)):
+            raise TypeError('tzinfo need is tzinfo')
         self.raids:list[Raid] = []
         self.recordingraidindex:int|None = None
         self.ac_player:Player = Player()
@@ -122,6 +131,12 @@ class LogParser:
             return None
         else:
             return self.raids[self.recordingraidindex]
+    @property
+    def now_raid_session(self)->RaidSession|None:
+        if self.now_raid:
+            if self.now_raid.sessions:
+                return self.now_raid.sessions[-1]
+        return None
     def new_log_folder(self):
         '表示之後傳入的日誌都是新的日誌資料夾產生的'
     def raid_done(self):
@@ -135,6 +150,10 @@ class LogParser:
             self.recordingraidindex = len(self.raids) - 1
         else:
             self.recordingraidindex += 1
+    def new_raid_session(self):
+        if self.now_raid:
+            if self.now_raid_session:
+                self.now_raid_session.end_time = datetime.now()
     def new_group(self):
         self.raid_group:RaidGroup = RaidGroup(max_member=self._max_member)
     def enable_event(self):
@@ -208,8 +227,13 @@ class LogParser:
                 try:
                     timestamp = datetime.strptime(dt_string, self._timestamp_format)
                 except ValueError as e:
-                    print(f"無法解析時間：{dt_string} → {e}")
+                    logger.warning(f'無法解析時間：{dt_string} → {e}')
                     continue
+                if timestamp.tzinfo is None: # before `1.0.0.0.41787` log time has not time zone
+                    if self.tzinfo:
+                        timestamp.replace(tzinfo=self.tzinfo)# if logger machine and run parser machine is diff time zone, need rewirte parser time zone
+                    else:
+                        timestamp.replace(tzinfo=SYSTEM_TIME_ZONE_INFO)# default use system time zone
                 line = Log_line(time=timestamp,message=message,parse_message=parse_message)
                 if json_part:
                     line.data = json.loads(json_part)
@@ -238,6 +262,7 @@ class LogParser:
                     self.profiletype = ProfileType(mode)
             case 'SelectProfile ProfileId:':
                 if self.now_raid:
+                    self.now_raid
                     self.recordingraid.end(line.time)
                 if match := re.search(r"SelectProfile ProfileId:(?P<pid>\w+)\s+AccountId:(?P<aid>\d+)",line.message):
                     profile_id = self.sensitive_data_hash(match.group("pid"))
@@ -330,7 +355,6 @@ class LogParser:
                     queue_time = float(queue_time_str)
                 else:
                     queue_time = None
-                # queue_time can't find in 
             case 'application|TRACE-NetworkGameCreate profileStatus':
                 '''
                 配對完成後立即觸發

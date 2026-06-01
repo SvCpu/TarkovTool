@@ -201,10 +201,10 @@ class RaidGroup(BaseModel):
                     break
 
 class RaidSession(BaseModel):
-    start_time: datetime
+    start_time: datetime = Field(default=None)
     started_time: datetime = Field(default=None)
     'Deprecated in tarkov 1.0'
-    end_time: datetime
+    end_time: datetime = Field(default=None)
 
 class Raid(BaseModel):
     id: str
@@ -213,9 +213,9 @@ class Raid(BaseModel):
     profile_type: ProfileType = Field(default=ProfileType.Regular)
     location: Optional[Location] = Field(default=None)
     local: bool = Field(default=False)
-    start_time: datetime
-    end_time: datetime
-    in_raid_time: int
+    start_time: datetime = Field(default=None)
+    end_time: datetime = Field(default=None)
+    in_raid_time: int = Field(default=None)
     sessions:list[RaidSession] = Field(default_factory=list)
 
 class Position(BaseModel):
