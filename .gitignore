@@ -5,7 +5,15 @@ build/
 dist/
 wheels/
 *.egg-info
+
+# temp file
 temp.py
 
 # Virtual environments
 .venv
+
+# config file
+*.yaml
+*.toml
+
+.env

@@ -12,6 +12,7 @@ repos = [
     "https://github.com/RatScanner/RatStash",
     "https://github.com/the-hideout/tarkov-dev",
     "https://github.com/the-hideout/tarkov-dev-svg-maps",
+    "https://github.com/the-hideout/tarkov-api",
     "https://github.com/TarkovTracker/tarkovdata",
     "https://github.com/carlsmei/tarkovdata",
     "https://github.com/M4elstr0m/TarkovMapTracker",
@@ -19,6 +20,8 @@ repos = [
     "https://github.com/adrian-griffin/tilda-eft",
     "https://github.com/kthenwhythen/tarkov-market-helper",
     "https://github.com/milainlambers/EFT-CaseCompilator-Screenshot-Cropper-Combinator",
+    "https://github.com/tiltysola/tarkov-tilty-frontend-opensource",
+    "https://github.com/tiltysola/magic-mana-client-opensource",
 ]
 
 names = [repo.rstrip("/").split("/")[-1] for repo in repos]

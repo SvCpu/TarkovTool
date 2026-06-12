@@ -16,6 +16,7 @@ import hashlib
 import json
 import re
 import logging
+from fnmatch import fnmatch
 
 from pydantic import BaseModel
 
@@ -78,14 +79,15 @@ class Log_line:
         return (self.time, self.message, self.parse_message) == (other.time, other.message, other.parse_message)
 
 class LogParser:
-    _log_pattern:str
-    _timestamp_format:str
+    _log_pattern:Final[str]
+    _timestamp_format:Final[str]
     _max_member: int
     _global_event_mark = False
-    _parse_strings:tuple[str]
+    _taget_patterns:Final[tuple[str]]
+    _parse_strings:Final[tuple[str]]
     @overload
     def __new__(self,
-                version:Version|str,
+                version:Version|str=None,
                 live_mode=False,
                 tzinfo:tzinfo=None,
                 ):...
@@ -100,6 +102,7 @@ class LogParser:
             cls.log_version = version
         return object.__new__(cls)
     def __init__(self, *args, **kwargs):
+        self._done:bool = False
         self._enable_event_trigger:False
         self._player_name_index:dict[str,Player] = {}
         self._player_aid_index:dict[str,Player] = {}
@@ -248,11 +251,48 @@ class LogParser:
         if not player.is_player_in(self.other_player):
             self.other_player.append(player)
     def _parse_player_data(self, data:dict)->_player|None:
-        with suppress():
+        with suppress(Exception):
             player_data = _player(**data)
             player_data.aid = self.sensitive_data_hash(player_data.aid)
             return player_data
         return None
+    def is_parser_taget(self, filename:str)->bool:
+        return any(fnmatch(filename, p) for p in self._taget_patterns)
+    def parse_line(self, line:Log_line):...
+
+
+class BetaLogParser(LogParser):
+    _log_pattern = r"(?P<date>^\d{4}-\d{2}-\d{2}) (?P<time>\d{2}:\d{2}:\d{2}\.\d{3} [+-]\d{2}:\d{2})\|(?P<message>.+$)\s*(?P<json>^{[\s\S]+?^})?"
+    _timestamp_format = "%Y-%m-%d %H:%M:%S.%f %z"
+    _max_member = 5
+    _taget_patterns:Final = (
+        '*application.log',
+        '*notifications.log',
+        '*errors.log'
+    )
+    _parse_strings:Final = (
+    'Session mode: ',
+    'SelectProfile ProfileId:',
+    'Got notification | GroupMatchInviteAccept',
+    'Got notification | GroupMatchInviteSend',
+    'Got notification | GroupMatchUserLeave',
+    'Got notification | GroupMatchWasRemoved',
+    'Got notification | GroupMatchRaidSettings',
+    'Got notification | GroupMatchRaidReady',
+    'application|Matching with group id',
+    'application|LocationLoaded',
+    'application|MatchingCompleted',
+    'application|TRACE-NetworkGameCreate profileStatus',
+    'application|GameStarting',
+    'application|GameStarted',
+    'application|Network game matching aborted',
+    'application|Network game matching cancelled',
+    'Got notification | UserMatchOver',
+    'application|Init: pstrGameVersion: ',
+    'Got notification | ChatMessageReceived',
+    'Error|Default|[Transit] Flag:Common',
+    'application|scene preset path:maps',
+    )
     def parse_line(self, line:Log_line):
         match line.parse_message:
             case 'Session mode: ':
@@ -452,35 +492,12 @@ class LogParser:
         #     return
         # self.t.append((line.time,line.message))
 
-
-class BetaLogParser(LogParser):
-    _log_pattern = r"(?P<date>^\d{4}-\d{2}-\d{2}) (?P<time>\d{2}:\d{2}:\d{2}\.\d{3} [+-]\d{2}:\d{2})\|(?P<message>.+$)\s*(?P<json>^{[\s\S]+?^})?"
-    _timestamp_format = "%Y-%m-%d %H:%M:%S.%f %z"
-    _max_member = 5
-    _parse_strings:Final[tuple[str]] = (
-    'Session mode: ',
-    'SelectProfile ProfileId:',
-    'Got notification | GroupMatchInviteAccept',
-    'Got notification | GroupMatchInviteSend',
-    'Got notification | GroupMatchUserLeave',
-    'Got notification | GroupMatchWasRemoved',
-    'Got notification | GroupMatchRaidSettings',
-    'Got notification | GroupMatchRaidReady',
-    'application|Matching with group id',
-    'application|LocationLoaded',
-    'application|MatchingCompleted',
-    'application|TRACE-NetworkGameCreate profileStatus',
-    'application|GameStarting',
-    'application|GameStarted',
-    'application|Network game matching aborted',
-    'application|Network game matching cancelled',
-    'Got notification | UserMatchOver',
-    'application|Init: pstrGameVersion: ',
-    'Got notification | ChatMessageReceived',
-    'Error|Default|[Transit] Flag:Common',
-    'application|scene preset path:maps',
-    )
-
 class ReleaseLogParser(LogParser):
     _log_pattern = r"(?P<date>^\d{4}-\d{2}-\d{2}) (?P<time>\d{2}:\d{2}:\d{2}\.\d{3})\|(?P<message>.+$)\s*(?P<json>^{[\s\S]+?^})?"
     _timestamp_format = "%Y-%m-%d %H:%M:%S.%f"
+    _max_member = 5
+    _taget_patterns:Final = (
+        '*application*.log',
+        '*push-notifications*.log'
+    )
+    _parse_strings:Final = ()

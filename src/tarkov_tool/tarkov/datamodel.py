@@ -111,6 +111,7 @@ class LogFolder(BaseModel):
     path: Path
     timestamp: datetime
     version: Version
+    log_file_count:int = Field(default=0)
     model_config = ConfigDict(
         validate_assignment=True,
         json_encoders={Path: str, Version: str}

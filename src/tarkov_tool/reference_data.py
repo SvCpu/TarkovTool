@@ -10,7 +10,6 @@ from zipfile import ZipFile
 from pydantic import BaseModel, Field, field_serializer
 
 class _reference_cache_info(BaseModel):
-    cache_name: str
     last_commit_hash:str
     last_update: datetime = Field(default_factory=datetime.now)
     @field_serializer("last_update")
@@ -50,9 +49,10 @@ class _reference:
     @classmethod
     @lru_cache(maxsize=1)
     def path(cls)->Path:
+        '僅返回預定的路徑位置'
         return REFERENCE_DATA_CACHE_DIR / cls._cache_name
     @classmethod
-    def download(cls):
+    def _download(cls):
         d_path = REFERENCE_DATA_CACHE_DIR / f'{cls._cache_name}.zip'
         if download_latest_source_code_snapshot(
             owner=cls._owner,
@@ -68,7 +68,6 @@ class _reference:
             shutil.rmtree(top_level)
             d_path.unlink()
             cls._cache_infos.infos[cls._cache_name] = _reference_cache_info(
-                cache_name=cls._cache_name,
                 last_commit_hash= get_latest_commit_hash(cls._owner, cls._repo, cls._branch)
             )
             cls._download_postprocess()
@@ -78,17 +77,17 @@ class _reference:
         if cls._cache_infos is None:
             cls.load_info_file()
         if cls.path().exists():
-            cls.updata()
+            cls._updata()
         else:
-            cls.download()
+            cls._download()
     @classmethod
-    def updata(cls):
+    def _updata(cls):
         if cache_info:=cls._cache_infos.infos.get(cls._cache_name):
             latest_commit_hash = get_latest_commit_hash(cls._owner, cls._repo, cls._branch)
             if latest_commit_hash != cache_info.last_commit_hash:
-                cls.download()
+                cls._download()
         else:
-            cls.download()
+            cls._download()
     @classmethod
     def _download_postprocess(cls):...
     @classmethod

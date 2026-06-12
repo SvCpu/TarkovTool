@@ -1,3 +1,5 @@
+from tarkov_tool.config import Config
+
 from functools import lru_cache
 from pathlib import Path
 import winreg
@@ -6,16 +8,27 @@ from contextlib import suppress
 import ctypes.wintypes
 
 @lru_cache(maxsize=1)
-def install_path() -> Path|None:
+def install_folder() -> Path|None:
+    '''
+    返回tarkov遊戲的安裝路徑\\
+    默認優先返回Steam版安裝路徑\\
+    可通過Config.find_steam_version_tarkov_first設置
+
+    Returns:
+        Path|None: 安裝路徑
+    '''
     install_location = None
-    with suppress():
+    steam_install_location = None
+    with suppress(FileNotFoundError):
         registry_path = r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\EscapeFromTarkov"
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, registry_path) as key:
             install_location, _ = winreg.QueryValueEx(key, "InstallLocation")
-    with suppress(Exception):
+    with suppress(FileNotFoundError):
         registry_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 3932890"
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, registry_path) as key:
-            install_location, _ = winreg.QueryValueEx(key, "InstallLocation")
+            steam_install_location, _ = winreg.QueryValueEx(key, "InstallLocation")
+    p = (steam_install_location, install_location) if Config.find_steam_version_tarkov_first else (install_location, steam_install_location)
+    install_location = next((p for p in p if p),None)
     return Path(install_location) if install_location else None
 
 @lru_cache(maxsize=1)
@@ -25,7 +38,7 @@ def logs_folder() -> Path|None:
     Returns:
         Path|None: 日誌資料夾路徑
     '''
-    if install_location:= install_path():
+    if install_location:= install_folder():
         return Path(install_location) / 'Logs'
     return None
 
