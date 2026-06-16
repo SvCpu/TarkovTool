@@ -1,9 +1,10 @@
 from .events import *
 
-import inspect
-import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Type
+import inspect
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +13,9 @@ class EventManger:
     _events:dict[str, list] = {}
     _enable = False
     _logparser = None
+    _executor = ThreadPoolExecutor(max_workers=8)
     @classmethod
-    def register(cls, event: Type[Event], handler: Callable) -> None:
+    def register(cls, event: Type[Event], handler: Callable[[Event],None]) -> None:
         if not inspect.isclass(event):
             raise TypeError("")
         if event in ALL_EVENTS:
@@ -22,20 +24,22 @@ class EventManger:
             logger.info(f'register event:{event._event_name}')
     @classmethod
     def _trigger(cls, event: Event):
-        if not inspect.isclass(event):
+        if not isinstance(event, Event):
             logger.error(
                 f"Expected a class, but got an instance of {type(cls).__name__}. "
                 f"Pass the class itself instead."
             )
+            return
         logger.info(f'trigger event:{event._event_name}')
         if cls._enable:
             for handler in cls._events.get(event._event_name, []):
                 def safe_call():
                     try:
-                        handler(event=event)
-                    except Exception as e:
-                        print(f"Handler error: {e}")
-                threading.Thread(target=safe_call, daemon=True).start()
+                        handler(event)
+                    except Exception:
+                        logger.debug(f"Handler error: {traceback.format_exc(chain=True)}")
+                        logger.error(f"Handler error: {traceback.format_exc()}")
+                cls._executor.submit(safe_call)
     @classmethod
     def Enable(cls):
         cls._enable = True
@@ -46,5 +50,6 @@ class EventManger:
         cls._trigger(event=ON_SHUTDOWN())
         cls._enable = False
         logger.info('EventManger Disable')
+    @classmethod
     def active(cls)->bool:
         return cls._enable
