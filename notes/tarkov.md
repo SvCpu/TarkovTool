@@ -1,3 +1,7 @@
+# language in log
+only game start will log select language one time
+in game change lang will not log
+
 # log file chage
 
 log file name add `_000` start with `1.0.0.0.41760`
