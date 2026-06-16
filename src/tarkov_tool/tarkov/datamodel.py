@@ -225,7 +225,12 @@ class Position(BaseModel):
     z: float
 
 class ScreenshotInfo(BaseModel):
+    filepath: Path
     filename: str
-    position: Position
-    yaw: float
-    pitch: float
+    position: Position|None = Field(default=None)
+    yaw: float|None = Field(default=None)
+    pitch: float|None = Field(default=None)
+    model_config = ConfigDict(
+        validate_assignment=True,
+        json_encoders={Path: str}
+    )

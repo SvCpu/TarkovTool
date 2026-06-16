@@ -18,7 +18,7 @@ import re
 import logging
 from fnmatch import fnmatch
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +64,11 @@ class _player(BaseModel):
     aid:int
     Info: _player_info
     isLeader:bool = Field(default=None)
+
+def get_gameversion_with_log_dirname(path:Path)->Version:
+    match = re.search(r'(\d+\.\d+\.\d+\.\d+\.\d+)$', path.name)
+    if match:
+        Version(match.group(1))
 
 @dataclass
 class Log_line:
@@ -146,17 +151,19 @@ class LogParser:
         self._raid_mark = StatusMark()
         if self.now_raid is not None:
             self.recordingraidindex = None
-    def new_raid(self):
+    def new_raid(self, time:datetime):
         self._raid_mark = StatusMark()
-        self.raids.append(Raid())
+        r = Raid()
+        r.start_time = time
+        self.raids.append(r)
         if self.now_raid is None:
             self.recordingraidindex = len(self.raids) - 1
         else:
             self.recordingraidindex += 1
-    def new_raid_session(self):
+    def new_raid_session(self, time:datetime):
         if self.now_raid:
             if self.now_raid_session:
-                self.now_raid_session.end_time = datetime.now()
+                self.now_raid_session.end_time = time
     def new_group(self):
         self.raid_group:RaidGroup = RaidGroup(max_member=self._max_member)
     def enable_event(self):
@@ -217,7 +224,6 @@ class LogParser:
             line_indexs = self.build_line_index(data)
         out:list[Log_line] = []
         log_messages = re.finditer(self._log_pattern, data, re.MULTILINE)
-
         for match in log_messages:
             match_start = match.start()
             match_end = match.end()
@@ -260,7 +266,6 @@ class LogParser:
         return any(fnmatch(filename, p) for p in self._taget_patterns)
     def parse_line(self, line:Log_line):...
 
-
 class BetaLogParser(LogParser):
     _log_pattern = r"(?P<date>^\d{4}-\d{2}-\d{2}) (?P<time>\d{2}:\d{2}:\d{2}\.\d{3} [+-]\d{2}:\d{2})\|(?P<message>.+$)\s*(?P<json>^{[\s\S]+?^})?"
     _timestamp_format = "%Y-%m-%d %H:%M:%S.%f %z"
@@ -302,8 +307,8 @@ class BetaLogParser(LogParser):
                     self.profiletype = ProfileType(mode)
             case 'SelectProfile ProfileId:':
                 if self.now_raid:
-                    self.now_raid
-                    self.recordingraid.end(line.time)
+                    if self.now_raid_session:
+                        self.now_raid_session.end_time = line.time
                 if match := re.search(r"SelectProfile ProfileId:(?P<pid>\w+)\s+AccountId:(?P<aid>\d+)",line.message):
                     profile_id = self.sensitive_data_hash(match.group("pid"))
                     account_id = self.sensitive_data_hash(match.group("aid"))
