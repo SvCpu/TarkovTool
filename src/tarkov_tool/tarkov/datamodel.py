@@ -1,3 +1,5 @@
+from .locations._base import Location
+
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
@@ -7,20 +9,6 @@ from typing import Optional, Final, Iterable
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_core import core_schema
 
-class Location(Enum):
-    Lighthouse = 'Lighthouse'
-    TarkovStreets = 'TarkovStreets'
-    Shoreline = 'Shoreline'
-    Reserve = 'Reserve'
-    GroundZero_High = 'GroundZero_High'
-    GroundZero = 'GroundZero'
-    FactoryDay = 'FactoryDay'
-    Woods = 'Woods'
-    Interchange = 'Interchange'
-    Labs = 'Labs'
-    Customs = 'Customs'
-    Icebreaker = 'Icebreaker'
-    Terminal = 'Terminal'
 
 class MessageType(Enum):
     PlayerMessage = 1
@@ -201,7 +189,17 @@ class RaidGroup(BaseModel):
                     self.members.remove(m)
                     break
 
+class RaidSessionType(Enum):
+    RaidStart = 'raid_start'
+    Reconnect = 'reconnect'
+    Transit = 'transit'
+    Unknow = 'unknow'
+
 class RaidSession(BaseModel):
+    id: str
+    short_id: Optional[str] = Field(default=None)
+    type:RaidSessionType = Field(default=RaidSessionType.Unknow)
+    location: Optional[Location] = Field(default=None)
     start_time: datetime = Field(default=None)
     started_time: datetime = Field(default=None)
     'Deprecated in tarkov 1.0'

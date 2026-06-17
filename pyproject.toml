@@ -24,6 +24,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "pywin32>=311;platform_system=='Windows'",
     "requests>=2.34.2",
+    "sqlmodel>=0.0.38",
 ]
 
 [dependency-groups]

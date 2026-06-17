@@ -1,4 +1,5 @@
-from .datamodel import GamePurchaseVersion, Location, LogVersion, Raid, Version
+from .locations import Location
+from .datamodel import GamePurchaseVersion, LogVersion, Raid, Version
 from .datamodel import RaidSession, RaidGroup, RaidStatus, RaidType
 from .datamodel import Player, Profile, ProfileSide, ProfileType
 from ..config import Config

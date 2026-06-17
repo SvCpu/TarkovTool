@@ -24,11 +24,13 @@ location_map:Final[dict[str,str]] = {
     'RezervBase': 'Reserve',
     'Sandbox_high': 'GroundZero_High',
     'Sandbox': 'GroundZero',
-    'factory4_day': 'FactoryDay',
+    'factory4_day': 'Factory_Day',
+    'factory4_night' : 'Factory_Night',
     'Woods': 'Woods',
     'Interchange': 'Interchange',
     'laboratory': 'Labs',
     'bigmap': 'Customs',
+    'Labyrinth': 'The_Labyrinth',
     'Icebreaker': 'Icebreaker'
 }
 

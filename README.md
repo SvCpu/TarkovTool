@@ -16,6 +16,22 @@ Tarkov 敏感數據包括但不限於:
 >[!NOTE]
 >這一行為被設計成讀取到數據並解析時就會進行哈希處理再輸出
 
+# 術語
+|名稱|術語說明|補充|
+|-|-|-|
+|Game Session|指遊戲進程的一個完整生命週期. 從遊戲開始到結束(進程結束也為結束)算是一個 Session||
+|Raid|指遊戲內的一場戰局. 通常是玩家進入地圖, 完成任務或戰鬥, 撤離後的過程|轉移到另外一個地圖後即使raid_id不同在也會被當成是同一個戰局(根據任務對同一個戰局的判定)|
+|Raid Session|指一場 Raid 的組成部分, 這個術語用來描述「同一場戰局的不同片段」|由於可能出現斷線重連, 地圖轉移等情況, 會導致同一場 Raid 被分割成多個 Session. |
+|Raid Group|指一場戰局作為隊友共同進入的小隊的成員|可能因服務器問題導致實際成員與log記錄的成員不符|
+
+> 基於已有情況的記錄，以上術語有以下關係
+> 
+> 一個Raid由一個或多個Raid Session組成
+> 
+> 一般情況下Raid只會有一個對應的Raid Group; 如果有地圖轉移, 可能會有不同的Raid Group
+> 
+> 同一場 Raid 可能跨越不同的 Game Session, 例如因玩家主動重啟遊戲或遊戲意外退出
+
 # 引用
 [Escape from Tarkov [Sound Effects]](https://www.youtube.com/playlist?list=PLq44zq7R2Kq7mUiGSXXjkcjHR7EDzHo6L)
 [Escape from Tarkov Wiki](https://escapefromtarkov.fandom.com/wiki/Escape_from_Tarkov_Wiki)
