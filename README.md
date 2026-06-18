@@ -1,4 +1,4 @@
-# Tarkov Tool
+# Tarkov Tool(WIP)
 
 一個[Escape from Tarkov][escape-from-tarkov]工具庫
 
@@ -32,10 +32,19 @@ Tarkov 敏感數據包括但不限於:
 > 
 > 同一場 Raid 可能跨越不同的 Game Session, 例如因玩家主動重啟遊戲或遊戲意外退出
 
+# 數據差異
+開發者使用遊戲1.0版本前已創建的 PVE Profile進行遊戲並以此獲得的log開發此項目;
+因此可能會與1.0版本以後創建的 PVE Profile 所產生的日誌有所差異
+
+詳細引用的日誌文件對應的遊戲版本請查看[notes\used_tarkov_log_versions.txt](notes\used_tarkov_log_versions.txt)
+
 # 引用
 [Escape from Tarkov [Sound Effects]](https://www.youtube.com/playlist?list=PLq44zq7R2Kq7mUiGSXXjkcjHR7EDzHo6L)
 [Escape from Tarkov Wiki](https://escapefromtarkov.fandom.com/wiki/Escape_from_Tarkov_Wiki)
 [Tarkov GraphQL API](https://api.tarkov.dev/)
+## id
+[tarkynator.com](https://tarkynator.com/common-id)
+[sp-tarkov/server](https://github.com/sp-tarkov/server/blob/96e5b73f0f00d0e0a75d83f216bcde0dec387605/project/assets/database/traders/54cb50c76803fa8b248b4571/dialogue.json#L4)
 
 ## 版權說明
 ### MindEscape字體
