@@ -7,6 +7,8 @@ Language: [繁體中文](README.md)/[Eng(ai translate)](README_en.md)/...
 # 關於
 這個項目最初是為了學習python, 探索tarkov的日誌信息(點估到log都可以有幾個GB)而做的
 
+項目目前還處於開發階段, 沒有任何使用文檔
+
 項目的前身[TarkovParser](https://github.com/SvCpu/TarkovParserArchive)
 
 # 數據
