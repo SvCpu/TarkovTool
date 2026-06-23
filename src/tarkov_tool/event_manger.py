@@ -19,9 +19,9 @@ class EventManger:
         if not inspect.isclass(event):
             raise TypeError("")
         if event in ALL_EVENTS:
-            event_name = event._event_name
+            event_name = event.event_name
             cls._events.setdefault(event_name, []).append(handler)
-            logger.info(f'register event:{event._event_name}')
+            logger.info(f'register event:{event.event_name}')
     @classmethod
     def _trigger(cls, event: Event):
         if not isinstance(event, Event):
@@ -30,9 +30,9 @@ class EventManger:
                 f"Pass the class itself instead."
             )
             return
-        logger.info(f'trigger event:{event._event_name}')
+        logger.info(f'trigger event:{event.event_name}')
         if cls._enable:
-            for handler in cls._events.get(event._event_name, []):
+            for handler in cls._events.get(event.event_name, []):
                 def safe_call():
                     try:
                         handler(event)

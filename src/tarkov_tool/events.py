@@ -22,18 +22,18 @@ __all__ = [
 ]
 
 class Event(BaseModel):
-    _event_name = 'base event'
+    event_name = 'base event'
     event_time: datetime = Field(default_factory=datetime.now)
     model_config = ConfigDict(
         validate_assignment=True,
         json_encoders={Path: str}
     )
     def __init_subclass__(cls, **kwargs):
-        cls._event_name = cls.__name__
+        cls.event_name = cls.__name__
         return super().__init_subclass__(**kwargs)
-    @computed_field
-    def event_name(self) -> str:
-        return self._event_name
+    # @computed_field
+    # def event_name(self) -> str:
+    #     return self.event_name
 
 class ON_STARTUP(Event):
     '事件偵測啟動時觸發'
