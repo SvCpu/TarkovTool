@@ -11,6 +11,67 @@ Language: [繁體中文](README.md)/[Eng(ai translate)](README_en.md)/...
 
 項目的前身[TarkovParser](https://github.com/SvCpu/TarkovParserArchive)
 
+# 當前已實現
+ - 基於現實時間計算塔科夫遊戲內時間(src/tarkov_tool/tarkov_time.py)
+ - 獲取塔科夫相關的文件路徑(scripts/print_tarkov_path.py)
+ - 事件驅動(src\tarkov_tool\event_manger.py;src\tarkov_tool\events.py)
+
+# 項目結構
+```
+TarkovTool/
+├── src/
+│   ├── tarkov_tool/                    # 主程式庫
+│   │   ├── config.py                   # 配置
+│   │   ├── constants.py                # 常數
+│   │   ├── event_manger.py             # 事件管理器
+│   │   ├── events.py                   # 事件定義
+│   │   ├── reference_data.py           # 參考數據
+│   │   ├── tarkov_time.py              # 塔科夫時間計算
+│   │   ├── watcher.py                  # 日誌監看器
+│   │   ├── tarkov/                     # 塔科夫遊戲交互
+│   │   │   ├── config.py               # 遊戲配置
+│   │   │   ├── datamodel.py            # 數據模型
+│   │   │   ├── is_runing.py            # 遊戲運行檢測
+│   │   │   ├── locales.py              # 語系
+│   │   │   ├── log.py                  # 日誌解析
+│   │   │   ├── message.py              # 遊戲訊息
+│   │   │   ├── path.py                 # 遊戲路徑
+│   │   │   ├── screenshot.py           # 截圖處理
+│   │   │   ├── setting.py              # 遊戲設定
+│   │   │   ├── status.py               # 遊戲狀態
+│   │   │   ├── localization/           # 本地化資源
+│   │   │   └── locations/              # 地圖數據
+│   │   ├── tarkovapi/                  # Tarkov API 客戶端
+│   │   └── util/                       # 工具模組
+│   │       ├── log_archive.py          # 日誌歸檔
+│   │       └── ...
+│   └── tarkov_tool_util/
+│       └── tarkovdev/                  # tarkov.dev 工具
+├── tests/                              # 測試
+├── scripts/                            # 腳本
+├── doc/                                # 文檔
+├── notes/                              # 開發筆記
+├── prompts/                            # AI 提示詞
+├── reference/                          # 參考項目（GitHub 克隆)
+│   ├── carlsmei_tarkovdata/
+│   ├── EFT-CaseCompilator-Screenshot-Cropper-Combinator/
+│   ├── eft-where-am-i/
+│   ├── RatEye/
+│   ├── RatScanner/
+│   ├── RatStash/
+│   ├── tarkov-api/
+│   ├── tarkov-dev/
+│   ├── tarkov-dev-svg-maps/
+│   ├── tarkov-market-helper/
+│   ├── tarkov-tilty-frontend-opensource/
+│   ├── TarkovMapTracker/
+│   ├── TarkovMonitor/
+│   ├── TarkovTracker_tarkovdata/
+│   ├── tilda-eft/
+│   └── Z_repo_doc/
+└── util/                               # 工具
+```
+
 # 數據
 ## Tarkov 敏感數據
 本項目默認會對讀取到的 Tarkov 敏感數據 進行哈希處理, 以保障隱私
