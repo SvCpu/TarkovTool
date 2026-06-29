@@ -1,5 +1,4 @@
 from enum import Enum
-from ..datamodel import Version
 
 from pydantic import BaseModel
 
@@ -11,7 +10,7 @@ class Location(Enum):
     GroundZeroHigh = 'GroundZero_High'
     GroundZero = 'GroundZero'
     FactoryDay = 'Factory_Day'
-    FactoryDay = 'Factory_Night'
+    FactoryNight = 'Factory_Night'
     Woods = 'Woods'
     Interchange = 'Interchange'
     Labs = 'Labs'
@@ -32,6 +31,6 @@ class LocationData(BaseModel):
     name:Location
     bundle_map:str
     location_map:str
-    ingameversion:Version
+    ingameversion:str
     size:tuple[int,int]
     Extractions:list[Extraction]

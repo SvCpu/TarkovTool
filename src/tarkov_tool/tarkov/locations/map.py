@@ -1,6 +1,7 @@
 from typing import Final
 
 map_bundles:Final[dict[str,str]] = {
+    "sandbox_start_preset": "Sandbox_Gu",
     "city_preset": "TarkovStreets",
     "customs_preset": "bigmap",
     "factory_day_preset": "factory4_day",
@@ -18,6 +19,7 @@ map_bundles:Final[dict[str,str]] = {
 }
 
 location_map:Final[dict[str,str]] = {
+    'Sandbox_Gu': 'Sandbox_Guide',
     'Lighthouse': 'Lighthouse',
     'TarkovStreets': 'TarkovStreets',
     'Shoreline': 'Shoreline',

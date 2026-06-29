@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Final, Iterable
+from functools import total_ordering
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_core import core_schema
@@ -40,6 +41,7 @@ class KillList:
     Killer: str
     EliminatedTagets: list[Kill]
 
+@total_ordering
 class Version:
     __slots__ = ('_raw_version', '_major', '_minor', '_patch', '_subpatch', '_build')
 
@@ -64,6 +66,8 @@ class Version:
     def subpatch(self): return self._subpatch
     @property
     def build(self): return self._build
+    def __hash__(self):
+        return hash((self.major, self.minor, self.patch, self.subpatch, self.build))
     def __repr__(self):
         return (f"<GameVersion {self.major}.{self.minor}.{self.patch}."
                 f"{self.subpatch}.{self.build}>")
@@ -75,9 +79,9 @@ class Version:
     def __eq__(self, other:'Version'):
         return (self.major, self.minor, self.patch, self.subpatch, self.build) == \
                (other.major, other.minor, other.patch, other.subpatch, other.build)
-    def __gt__(self, other:'Version'):
-        return (self.major, self.minor, self.patch, self.subpatch, self.build) > \
-               (other.major, other.minor, other.patch, other.subpatch, other.build)
+    # def __gt__(self, other:'Version'):
+    #     return (self.major, self.minor, self.patch, self.subpatch, self.build) > \
+    #            (other.major, other.minor, other.patch, other.subpatch, other.build)
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type, handler):
         return core_schema.no_info_plain_validator_function(
@@ -143,7 +147,7 @@ class GamePurchaseVersion(Enum):
     UnheardEdition = 'unheard_edition'
 
 class Profile(BaseModel):
-    id: str
+    id: str = None
     type: ProfileType = Field(default=ProfileType.Regular)
     level: int = Field(default=0)
 
@@ -152,14 +156,14 @@ class PlayerHealth(BaseModel):
 
 class Player(BaseModel):
     ac_id: int = Field(default=None)
-    pve_profile_id: str = Field(default=None)
-    regular_profile_id: str = Field(default=None)
+    pve_profile: Profile = Field(default_factory=lambda: Profile(type=ProfileType.PVE))
+    regular_profile: Profile = Field(default_factory=lambda: Profile(type=ProfileType.Regular))
     game_purchase_version: Optional[GamePurchaseVersion] = Field(default=GamePurchaseVersion.Standard)
     nickname: str = Field(default=None)
     side:ProfileSide = Field(default=None)
     level: int = Field(default=None)
-    def __new__(cls, *args, **kwargs):
-        return super().__new__(cls,)
+    # def __new__(cls, *args, **kwargs):
+    #     return super().__new__(cls,)
     def is_same_player(self, other)->bool:
         if not isinstance(other, Player):
             raise TypeError
@@ -192,7 +196,7 @@ class RaidGroup(BaseModel):
 class RaidSessionType(Enum):
     RaidStart = 'raid_start'
     Reconnect = 'reconnect'
-    Transit = 'transit'
+    Transit = 'transit' # add with 0.15.0.0.32128 https://escapefromtarkov.fandom.com/wiki/Changelog#0.15.0.0.32128_(20_August_2024)
     Unknow = 'unknow'
 
 class RaidSession(BaseModel):
